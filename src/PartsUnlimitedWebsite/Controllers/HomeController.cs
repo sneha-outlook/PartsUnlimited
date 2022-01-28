@@ -1,6 +1,7 @@
-﻿// Copyright (c) Microsoft. All rights reserved.
+// Copyright (c) Microsoft. All rights reserved.
 // Licensed under the MIT license. See LICENSE file in the project root for full license information.
 
+using LaunchDarkly.Client;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.Extensions.Caching.Memory;
 using PartsUnlimited.Models;
@@ -16,6 +17,8 @@ namespace PartsUnlimited.Controllers
         private readonly IPartsUnlimitedContext _db;
         private readonly IMemoryCache _cache;
         public int roco_count = 1000;
+        static LdClient client = new LdClient("_sdk-8b0b1523-493c-4f3d-9cf7-6e1cd2ea4f9b"); //LaunchDarkly API key
+
 
         public HomeController(IPartsUnlimitedContext context, IMemoryCache memoryCache)
         {
@@ -50,10 +53,24 @@ namespace PartsUnlimited.Controllers
                 TopSellingProducts = topSellingProducts,
                 CommunityPosts = GetCommunityPosts()
             };
+            var category = _db.Categories.ToList();
+            //LaunchDarkly start
+            User user = LaunchDarkly.Client.User.WithKey("administrator@test.com");
+            bool value = client.BoolVariation("member-portal", user, false);
+            if (value)
+            {
+                ViewBag.Message = "Your application description page.";
+                ViewData["togglevalue"] = value;
+                return View(viewModel);
+            }
+            else
+            {
+                return View(viewModel);
+            }
+           // return View(viewModel);
 
-            return View(viewModel);
         }
-
+        //LaunchDarkly End
         //Can be removed and handled when HandleError filter is implemented
         //https://github.com/aspnet/Mvc/issues/623
         public IActionResult Error()
